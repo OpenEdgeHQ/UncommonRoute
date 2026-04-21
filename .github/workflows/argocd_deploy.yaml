@@ -1,0 +1,81 @@
+name: Deploy UncommonRouter
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Select target environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - test
+          - prod
+
+      image_name:
+        description: "app name"
+        required: true
+        type: choice
+        options:
+          - uncommonroute
+
+      project:
+        description: "Select target project"
+        required: true
+        type: choice
+        options:
+          - iaas
+
+      region:
+        description: "Select target region"
+        required: true
+        type: choice
+        options:
+          - global
+          - cn
+          - us
+
+      argocd_sync:
+        description: "Trigger ArgoCD sync"
+        required: false
+        type: boolean
+        default: true
+
+      enable_notification:
+        description: "Send Slack notification"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: read
+  repository-projects: read
+  id-token: write
+
+jobs:
+  deploy:
+    uses: OpenEdgeHQ/infra-common/.github/workflows/iaas-deploy.yaml@main
+    with:
+      environment: ${{ inputs.environment }}
+      region: ${{ inputs.region }}
+
+      project: ${{ inputs.project }}
+      image_name: ${{ inputs.image_name }}
+      dockerfile_path: ./docker/${{ inputs.image_name }}.Dockerfile
+
+      helm_values_path: ./${{ inputs.image_name }}/${{ inputs.region }}/${{ inputs.environment }}-values.yaml
+
+      argocd_app_name:
+        ${{ inputs.environment }}-${{ inputs.project }}-${{ inputs.image_name }}${{ inputs.region != '' && inputs.region != 'global' && format('-{0}',
+        inputs.region) || '' }}
+      argocd_sync: ${{ inputs.argocd_sync }}
+
+      enable_notification: ${{ inputs.enable_notification }}
+
+    secrets:
+      registry_username: ${{ secrets.ALIYUN_ACR_USERNAME }}
+      registry_password: ${{ secrets.ALIYUN_ACR_PASSWORD }}
+      argocd_token: ${{ secrets.ARGOCD_TOKEN }}
+      argocd_server: ${{ secrets.ARGOCD_SERVER }}
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

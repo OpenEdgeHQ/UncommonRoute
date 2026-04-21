@@ -1,0 +1,77 @@
+# IaaS Cloud Frontend - Development Environment
+
+# 镜像配置
+image:
+  repository: acr.gradient.network/dev/cloud-fe-cn
+  tag: "feature-cn_l.20260308T125539.0748c358"
+  pullPolicy: IfNotPresent
+# 应用名称
+nameOverride: "uncommonroute"
+fullnameOverride: "uncommonroute"
+# 副本数
+replicaCount: 1
+# Service 配置
+service:
+  enabled: true
+  type: ClusterIP
+  port: 80
+  targetPort: 8403
+# Istio 配置
+istio:
+  gateway:
+    enabled: false
+  virtualService:
+    enabled: false
+
+# 资源配置
+resources:
+  requests:
+    cpu: "200m"
+    memory: "200Mi"
+  limits:
+    cpu: "2000m"
+    memory: "1500Mi"
+# 健康检查
+livenessProbe:
+  enabled: true
+  type: tcpSocket
+  tcpSocket:
+    port: 8403
+  initialDelaySeconds: 60
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+readinessProbe:
+  enabled: true
+  type: tcpSocket
+  tcpSocket:
+    port: 8403
+  initialDelaySeconds: 30
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 3
+# PodDisruptionBudget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+# 标签
+extraLabels:
+  app.kubernetes.io/component: frontend
+  environment: development
+
+env:
+  - name: UNCOMMON_ROUTE_UPSTREAM
+    valueFrom:
+      secretKeyRef:
+        key: UNCOMMON_ROUTE_API_KEY
+        name: iaas-uncommonroute-secret
+  - name: UNCOMMON_ROUTE_API_KEY
+    valueFrom:
+      secretKeyRef:
+        key: UNCOMMON_ROUTE_API_KEY
+        name: iaas-uncommonroute-secret
+secret:
+  enabled: true
+  name: iaas-uncommonroute-secret
+  mountPath: /etc/secret
+  data: {}
